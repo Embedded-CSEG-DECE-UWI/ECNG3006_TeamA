@@ -4,4 +4,4 @@ This is the repository to version control, allow workflow, build, test, and depl
 # Change Log
 ## 18/09/2023
 Created GitHub repository and branches.
-Readme formatting can be found using this [link] (https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+Readme formatting can be found using this [link](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
