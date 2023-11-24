@@ -1,5 +1,5 @@
 /* 
- * File:   lightPulse.c
+ * File:   bleLink.c
  * Author: williampyke
  *
  * Created on November 23, 2023, 1:06 PM
@@ -67,6 +67,8 @@
 /*
  * 
  */
+//const portTICK_PERIOD_MS = 1;                       //since tick rate = 1000Hz, 1 tick per ms
+//const TickType_t xDelay = 500 / portTICK_PERIOD_MS; //set delay to 500ms
 
 void USARTsetup(void) // setup BLE module
 {
@@ -90,25 +92,48 @@ void interruptsetup(void)
 {
     INTCONbits.GIE = 1;
     INTCONbits.PEIE = 1;
+} 
+    return;
 }
 
-void __interrupt(high_priority) tcint(void)
+void cputime_delay(int cycles)
 {
-    if (INTCONbits.TMR0IE && INTCONbits.TMR0IF)
+    for (int i = 0; i < cycles; i++)
     {
-        INTCONbits.TMR0IF = 0;
-        tick++;
+        Nop();  //nop from C18 manual
     }
-    
-    return;
+
+}
+
+void bleCharload(char byte)  
+{
+    TXREG = byte;
+    while(!TXIF);  
+    while(!TRMT);
+}
+
+void bleStringload(char* string)
+{
+    while(*string)
+    bleCharload(*string++);
+}
+
+void bleSend()
+{
+  TXREG = 0b00001101;   //sends carriage return 
+  //vTaskDelay(xDelay); //delays for xDelay defined at program start
+  cputime_delay(1000);  //delay for 1000cycles
 }
 
 void main(void) 
 {
     interruptsetup();
     USARTsetup();
-    while (1) {
-}
-return;
+    while(1) 
+    {
+        bleStringload("hello my pulse rate is 981");
+        bleSend();        
+    }
+    return;
 }	
 
