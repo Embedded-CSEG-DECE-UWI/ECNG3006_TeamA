@@ -4,7 +4,7 @@
  *
  * Created on November 23, 2023, 1:06 PM
  */
-#include <p18F4620.h>
+#include <pic18f4620.h>
 
 // CONFIG1H
 #pragma config OSC = HS         // Oscillator Selection bits (HS oscillator)
@@ -61,61 +61,173 @@
 // CONFIG7H
 #pragma config EBTRB = OFF      // Boot Block Table Read Protection bit (Boot Block (000000-0007FFh) not protected from table reads executed in other blocks)
 
+#include <xc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-/*
- * 
- */
+#define _XTAL_FREQ 8000000
 
-void USARTsetup(void) // for BLE module
+#define ARRAYVAL 149
+#define RED 'R'
+#define IR 'I'
+#define BG 'B'
+
+unsigned int state;
+int tick = 0, redON = 0, redOFF = 1, irON = 0, irOFF = 1, waitON = 0, waitOFF = 1, arrayvals = 0, adcout = 0;
+char arrsel;
+int REDvalues[149];
+int IRvalues[149];
+int BGvalues[149];
+
+void USARTsetup(void)
 {
     TRISCbits.TRISC6 = 1;
     TRISCbits.TRISC7 = 1;
-    RCSTAbits.SPEN = 1; //Serial Port Enabled
-    RCSTAbits.CREN = 1; //Continuous Receive Enabled
-    RCSTAbits.RX9 = 0;  //Sets 8-bit reception
-    TXSTAbits.BRGH = 1; //Sets High Baud Rate mode
-    TXSTAbits.SYNC = 0; //Sets EUSART to Asynchronous mode
-    TXSTAbits.TXEN = 1; //Transmit Enabled
-    TXSTAbits.TX9 = 0;  //Sets 8-bit transmission
-    PIE1bits.TXIE = 1;  //Enables tx interrupt
-    PIE1bits.RCIE = 1;  //Enables rx interrupt
-    SPBRGH = 0x00;          
-    SPBRG = 0b00110011;     //51 decimal
+    RCSTAbits.SPEN = 1;
+    RCSTA = 0b10110000;
+    TXSTAbits.BRGH = 1;
+    TXSTAbits.SYNC = 0;
+    TXSTAbits.TXEN = 1;
+    SPBRGH = 0x00;
+    SPBRG = 0b00011001;
     BAUDCON = 0b00000000;
+    INTCONbits.PEIE = 1;
+    PIE1bits.RCIE = 1;
+    IPR1bits.RCIP = 0;
 }
 
-void timer0setup(void)
+void putch(char c)
 {
-    T0CON = 0b10000010;
-    INTCONbits.TMR0IE = 1;
+    while(!TXIF)
+        continue;
+    TXREG = c;
+}
+
+void wait50ms(void)
+{
+    __delay_ms(50);
+} 
+
+void REDon()
+{
+    LATDbits.LATD2 = 1;
+    redON = 1;
+    redOFF = 0;
+} 
+  
+void REDoff()
+{
+    LATDbits.LATD2 = 0;
+    redON = 0;
+    redOFF = 1;
+}
+
+void IRon()
+{
+    LATDbits.LATD3 = 1;
+    irON = 1;
+    irOFF = 0;
+} 
+  
+void IRoff()
+{
+    LATDbits.LATD3 = 0;
+    irON = 0;
+    irOFF = 1;
+}
+
+void setupLEDs()
+{
+    TRISDbits.TRISD2 = 0;
+    LATDbits.LATD2 = 0;
+    TRISDbits.TRISD3 = 0;
+    LATDbits.LATD3 = 0;
+}
+
+void timer2setup(void)
+{
+    T2CON = 0b01111111;
+    PIE1bits.TMR2IE = 1;
+    PR2 = 0b01001110;
+    IPR1bits.TMR2IP = 1;
 }
 
 void interruptsetup(void)
 {
     INTCONbits.GIE = 1;
     INTCONbits.PEIE = 1;
+    RCONbits.IPEN = 1;
 }
 
-void __interrupt(high_priority) tcint(void)
+void __interrupt(high_priority) tmrint(void)
 {
-    if (INTCONbits.TMR0IE && INTCONbits.TMR0IF)
+    if(PIE1bits.TMR2IE && PIR1bits.TMR2IF)
     {
-        INTCONbits.TMR0IF = 0;
+        PIR1bits.TMR2IF = 0;
         tick++;
     }
-    
+//    if(tick > 10000)
+//    {
+//        tick = 0;
+//    }
     return;
+}
+
+void storeADC(int adcout, int arrayvals, char arrsel)
+{
+    
+    if (arrsel == 'R')
+    {
+        REDvalues[arrayvals] = adcout;
+    } 
+    else if (arrsel == 'I')
+    {
+        IRvalues[arrayvals] = adcout;
+    }
+    else 
+    {
+        BGvalues[arrayvals] = adcout;
+    }
+}
+
+void cleararrays(int arrayvals)
+{
+    for (int i =0; i < ARRAYVAL+1; i++)
+    {
+        REDvalues[i] = 0;
+        IRvalues[i] = 0;
+        BGvalues[i] = 0;
+    }
 }
 
 void main(void) 
 {
-    timer0setup();
+    timer2setup();
     interruptsetup();
+    setupLEDs();
     USARTsetup();
-    while (1) {
-}
+    cleararrays(ARRAYVAL);
+    while(1)
+    {
+        for (int i =0; i < ARRAYVAL+1; i++)
+        {
+            REDon();            //Turns RED LED on
+            wait50ms();           //waits 50ms
+            //adcout = readADC(); //Reads RED value
+            storeADC(adcout, ARRAYVAL, RED);
+            REDoff();           //Turns RED LED off
+            IRon();             //Turns IR LED on
+            wait50ms();           //waits 50ms
+            //adcout = readADC(); //Reads IR value
+            storeADC(adcout, ARRAYVAL, IR);
+            IRoff();            //Turns IT LED off
+            wait50ms();           //waits 50ms
+            //adcout = readADC(); //reads background noise value
+            storeADC(adcout, ARRAYVAL, BG);
+        }
+        cleararrays(ARRAYVAL);
+    }
+    
 return;
 }	
 
