@@ -61,14 +61,13 @@
 // CONFIG7H
 #pragma config EBTRB = OFF      // Boot Block Table Read Protection bit (Boot Block (000000-0007FFh) not protected from table reads executed in other blocks)
 
+#include <xc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 /*
  * 
  */
-//const portTICK_PERIOD_MS = 1;                       //since tick rate = 1000Hz, 1 tick per ms
-//const TickType_t xDelay = 500 / portTICK_PERIOD_MS; //set delay to 500ms
 
 void USARTsetup(void) // setup BLE module
 {
@@ -93,14 +92,12 @@ void interruptsetup(void)
     INTCONbits.GIE = 1;
     INTCONbits.PEIE = 1;
 } 
-    return;
-}
 
 void cputime_delay(int cycles)
 {
     for (int i = 0; i < cycles; i++)
     {
-        Nop();  //nop from C18 manual
+        NOP();
     }
 
 }
@@ -121,7 +118,6 @@ void bleStringload(char* string)
 void bleSend()
 {
   TXREG = 0b00001101;   //sends carriage return 
-  //vTaskDelay(xDelay); //delays for xDelay defined at program start
   cputime_delay(1000);  //delay for 1000cycles
 }
 
