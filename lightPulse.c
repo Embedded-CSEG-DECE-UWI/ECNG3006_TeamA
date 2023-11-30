@@ -116,6 +116,7 @@ void csvOutput()
 void realtimeSend()
 {
     compare();
+    MemMang();
     printf("\rHR: %d SPO2: %d       ",HRvalue, SPO2value);
 }
 
@@ -148,19 +149,19 @@ void IRoff(void)
 
 void adcselect(int channel)
 {
-    if(channel == 1)    //AN10 is RED LED channel
+    if(channel == 1)    //AN0 is RED LED channel
     {
-        ADCON0bits.CHS3 = 1;
-        ADCON0bits.CHS2 = 0;
-        ADCON0bits.CHS1 = 1;
-        ADCON0bits.CHS0 = 0;
-    }
-    else if(channel == 2)   //AN8 is IR LED channel
-    {
-        ADCON0bits.CHS3 = 1;
+        ADCON0bits.CHS3 = 0;
         ADCON0bits.CHS2 = 0;
         ADCON0bits.CHS1 = 0;
-        ADCON0bits.CHS0 = 0;        
+        ADCON0bits.CHS0 = 0;
+    }
+    else if(channel == 2)   //AN1 is IR LED channel
+    {
+        ADCON0bits.CHS3 = 0;
+        ADCON0bits.CHS2 = 0;
+        ADCON0bits.CHS1 = 0;
+        ADCON0bits.CHS0 = 1;        
     }
 }
 void setupLEDs(void)
@@ -182,8 +183,8 @@ void AD_setup()
 {
     TRISAbits.TRISA0 = 1; //Configured as an inputs to allow analog input
     TRISAbits.TRISA1 = 1;
-    ADCON0 = 0b00101001; //Analog AN10 Select bits, AD idle, AD On bit
-    ADCON1 = 0b00000100; //VREF- source is VSS, VREF+ source is VDD, AN10 and AN8 set as Analog inputs
+    ADCON0 = 0b00000001; //Analog AN0 Select bits, AD idle, AD On bit
+    ADCON1 = 0b00000100; //VREF- source is VSS, VREF+ source is VDD, AN0 and AN1 set as Analog inputs
     ADCON2 = 0b10101101; // Left justified, 12 TAD, and FOSC/2
 }
 void ADC_read(int channel, int I)
