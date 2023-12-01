@@ -109,7 +109,7 @@ void __interrupt (high_priority) PeriodInt(void)
         }
         tick++;
     }
-    if (TRISCbits.TRISC1 == 0)
+    if (LATCbits.LATC1 == 0)
     {
         state = REPORTING; //changes switch state to reporting mode
     }
@@ -504,31 +504,31 @@ void main(void)
     AD_setup();
     freq = 0;
     //if RA0, RA1, RA2 or RA3 change size of array
-    if (TRISDbits.TRISD7 == 1)
+    if (LATDbits.LATD7 == 1)
     {
         arrSize = 20;
         printf ("Storage for 20 readings selected\n");
     }
-    else if (TRISDbits.TRISD6 == 1)
+    else if (LATDbits.LATD6 == 1)
     {
         arrSize = 30;
         printf ("Storage for 30 readings selected\n");
     }
-    else if (TRISDbits.TRISD5 == 1)
+    else if (LATDbits.LATD5 == 1)
     {
         arrSize = 40;
         printf ("Storage for 40 readings selected\n");
     }
-    else if (TRISDbits.TRISD4 == 1)
+    else if (LATDbits.LATD4 == 1)
     {
         arrSize = 50;
         printf ("Storage for 50 readings selected\n");
     }
     
     //if RC1, RD0, or RD1 if on then it changes the frequency of readings for the period of measuring
-    if (TRISCbits.TRISC3 == 1){ freq = 10;printf ("Time is 10s\n");}
-    else if (TRISDbits.TRISD0 == 1){ freq = 20;printf ("Time is 20s\n");}
-    else if (TRISDbits.TRISD1 == 1){ freq = 30;printf ("Time is 30s\n");}
+    if (LATCbits.LATC3 == 1){ freq = 10;printf ("Time is 10s\n");}
+    else if (LAtDbits.LATD0 == 1){ freq = 20;printf ("Time is 20s\n");}
+    else if (LATDbits.LATD1 == 1){ freq = 30;printf ("Time is 30s\n");}
     timer1Setup();
     //timer3setup();
     while(1)
@@ -550,7 +550,7 @@ void main(void)
                     csvOutput();
                     reportDONE = 1;
                 }     
-                if (TRISCbits.TRISC1 == 1)
+                if (LATCbits.LATC1 == 1)
                 {
                     state = MEASURING; //changes to measuring mode
                     reportDONE = 0;
