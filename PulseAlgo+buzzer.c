@@ -104,11 +104,11 @@ void __interrupt (high_priority) tcInt (void)
         tick++;
     }
     
-    if (!TRISCbits.TRISC1)
+    if (!LATCbits.LATC1)
     {
         state = REPORTING; //changes switch state to reporting mode
     }
-    else if (TRISCbits.TRISC1)
+    else if (LATCbits.LATC1)
     {
         state = MEASURING; //changes to measuring mode
     }
@@ -227,25 +227,25 @@ void Init()
 {
     freq = 0;
     //if RA0, RA1, RA2 or RA3 change size of array
-    if (TRISDbits.TRISD7)
+    if (LATDbits.LATD7)
     {
         double BPMout [20];
         double SpO2out [20];
         printf ("Storage for 20 readings selected\n");
     }
-    else if (TRISDbits.TRISD6)
+    else if (LATDbits.LATD6)
     {
         double BPMout [30];
         double SpO2out [30];
         printf ("Storage for 30 readings selected\n");
     }
-    else if (TRISDbits.TRISD5)
+    else if (LATDbits.LATD5)
     {
         double BPMout [40];
         double SpO2out [40];
         printf ("Storage for 40 readings selected\n");
     }
-    else if (TRISDbits.TRISD4)
+    else if (LATDbits.LATD4)
     {
         double BPMout [50];
         double SpO2out [50];
@@ -253,9 +253,9 @@ void Init()
     }
 
     //if RC1, RD0, or RD1 if on then it changes the frequency of readings for the period of measuring
-    if (TRISCbits.TRISC3){ freq = 20;}
-    else if (TRISDbits.TRISD0){ freq = 30;}
-    else if (TRISDbits.TRISD1){ freq = 40; }
+    if (LATCbits.LATC3){ freq = 20;}
+    else if (LATDbits.LATD0){ freq = 30;}
+    else if (LATDbits.LATD1){ freq = 40; }
 
     timer1Setup();
     now = tick;
