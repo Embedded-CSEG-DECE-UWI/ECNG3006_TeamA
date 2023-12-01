@@ -191,13 +191,17 @@ void AD_setup()
 
 void songPlay()
 {
-    PR2 = 0b00111011;
-    CCPR1L = 0b00111011; //two eight MSbs of the 10-bit value for PWM duty cycle
+    PR2 = 0b10011100;
+    CCPR1L = 0b00100111; //two eight MSbs of the 10-bit value for PWM duty cycle
     CCP1CON = 0b00001100;
     __delay_ms(500);
-    PR2 = 0b00110100;
-    CCPR1L = 0b00111011; //two eight MSbs of the 10-bit value for PWM duty cycle
-    CCP1CON = 0b00111100;
+    PR2 = 0b01111100;
+    CCPR1L = 0b10001011; //two eight MSbs of the 10-bit value for PWM duty cycle
+    CCP1CON = 0b00001100;
+    __delay_ms(500);
+    PR2 = 0b01111100;
+    CCPR1L = 0b10001011; //two eight MSbs of the 10-bit value for PWM duty cycle
+    CCP1CON = 0b00001100;
     __delay_ms(500);
 
 }
