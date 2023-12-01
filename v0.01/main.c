@@ -3,14 +3,14 @@
  * Authors: Amir Ali, Sadie Edwards and William Pyke
  *
  *
- * @brief Finite state machine implemented to manage the pulse oximetry code
+ * @brief Finite state machine implemented to manager the pulse oximetry code
  * 
  */
 
 // PIC18F4620 Configuration Bit Settings
 // CONFIG1H
 #pragma config OSC = HS         // Oscillator Selection bits (HS oscillator)
-#pragma config FCMEN = OFF       // Fail-Safe Clock Monitor Enable bit (Fail-Safe Clock Monitor enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enable bit (Fail-Safe Clock Monitor enabled)
 #pragma config IESO = OFF       // Internal/External Oscillator Switchover bit (Oscillator Switchover mode disabled)
 
 // CONFIG2L
@@ -74,21 +74,19 @@
 #define IDLE 2
 
 int state;
-uint8_t reportDONE = 0, SPO2 = 0, BPM = 0;
-int count = 0, channel = 1;
+int reportDONE = 0, SPO2 = 0, BPM = 0;
+int count = 0, arrayvals = 0, adcout = 0, channel = 1;
 int HRadc[2] ; //store adc readings from pulse
 int16_t RedVal[150];
 int SPadc [2] ; //store adc readings from pulse
 int16_t IRVal[150];
-int8_t peakIndicesR [15]; //store the indices of the highest peaks found in the red adc array
-int8_t peakIndicesIR [15]; //store the indices of the highest peaks found in the IR adc array
-int peakIndR = 0, peakIndIR = 0;
-int16_t peakValR = 0, peakValIR = 0; //stores the peak value found in signal at the position in the array stored
+int peakIndicesR [15]; //store the indices of the highest peaks found in the red adc array
+int peakIndicesIR [15]; //store the indices of the highest peaks found in the IR adc array
+int peakIndR = 0, peakIndIR = 0,peakValR = 0, peakValIR = 0; //stores the peak value found in signal at the position in the array stored
 int baseline = 615; //RED peak baseline (expected points) for 3V (gain 1000/ Offset 1.8V)
-int8_t lowIndR = 0, lowIndIR = 0;
-int16_t lowValR = 0, lowValIR = 0; //low index number and value for red and ir 
-int8_t BPMout[50], SpO2out[50];
-int tick = 0, num = 0, arrSize = 0, freq = 0;
+int lowIndR = 0, lowIndIR = 0, lowValR = 0, lowValIR = 0; //low index number and value for red and ir 
+int BPMout[50], SpO2out[50];
+int tick = 0, now = 0, num = 0, arrSize = 0, freq = 0;
 
 void putch(char c) //Empty stub that puts a character to stdout peripheral when using printf() function
 {
@@ -96,12 +94,12 @@ void putch(char c) //Empty stub that puts a character to stdout peripheral when 
     TXREG = c; //Parsing the data to be printed to the Read/Write Transmit Buffer register
 }
 
-void __interrupt (low_priority) PeriodInt(void)
+void __interrupt (high_priority) PeriodInt(void)
 {
-    if (INTCONbits.TMR0IE && INTCONbits.TMR0IF)
+    if (PIR1bits.TMR1IF && PIE1bits.TMR1IE)
     {
-        INTCONbits.TMR0IF = 0;
-        if (tick >= freq )
+        PIR1bits.TMR1IF = 0;
+        if (tick >= (freq/0.26) )
         {
             tick = 0;
             if (state == IDLE)
@@ -111,18 +109,32 @@ void __interrupt (low_priority) PeriodInt(void)
         }
         tick++;
     }
-    if (PORTCbits.RC1 == 1)
+    if (LATCbits.LATC1 == 0)
     {
         state = REPORTING; //changes switch state to reporting mode
     }
     return;
 }
 
+//void __interrupt (low_priority) tmrint(void)
+//{
+//    if(PIR2bits.TMR3IF && PIE2bits.TMR3IE)
+//    {
+//        PIR2bits.TMR3IF = 0;
+//        TMR3H = 0b11011001;
+//        TMR3L = 0b10010100;
+//        count++;
+//    }
+//}
+
+
 void timer1Setup()
 {
-    T0CON = 0b10000100;
-    INTCONbits.TMR0IE = 1;
+    T1CON = 0b10110001;
     INTCONbits.GIE = 1;
+    RCONbits.IPEN = 1;
+    IPR1bits.TMR1IP = 1;
+    PIE1bits.TMR1IE = 1;
 }
 
 void dipSwitchSetup()
@@ -161,6 +173,12 @@ void setupLEDs()
     LATDbits.LATD3 = 0;
 }
 
+//void timer3setup(void)
+//{
+//    T3CON = 0b00000010;    //set as 8-bit timer with prescaler of 4 and off by default
+//    PIE2bits.TMR3IE = 1;
+//    IPR2bits.TMR3IP = 0;
+//}
 
 void AD_setup()
 {
@@ -201,8 +219,6 @@ void MemMang()
        for (int i = 0; i < arrSize; i++)
        {
            printf("%d . HR: %d . SpO2: %d\n",num,BPMout [i],SpO2out [i]);
-           BPMout[i] = 0;
-           SpO2out[i] = 0;
            num++;
            __delay_ms(1);           
        }
@@ -257,6 +273,7 @@ void PeakFind()
         else if (RedVal[i] < baseline && peakIndR != 0)
         {
             peakIndicesR[j] = peakIndR;
+            //printf("Peaks at: %d\n",peakIndicesR[j]);
             j++;
             peakIndR = 0;
             peakValR = 0;
@@ -265,6 +282,7 @@ void PeakFind()
     if (peakIndR != 0)
     {
       peakIndicesR[j] = peakIndR;
+      //printf("Peaks at: %d\n",peakIndicesR[j]);
       j++;  
     }
     
@@ -289,6 +307,7 @@ void PeakFind()
         else if (IRVal[i] < baseline && peakIndIR != 0)
         {
             peakIndicesIR[j] = peakIndIR;
+            //printf("Peaks at: %d\n",peakIndicesIR[j]);
             j++;
             peakIndIR = 0;
             peakValIR = 0;
@@ -304,7 +323,7 @@ void PeakFind()
 
 void BPMcalc()
 {
-    int count2 = 0,sum = 0;
+    int count = 0,sum = 0;
     double period = 0;
     int i = 0;
     /*calculates the difference between the indices to note when each peak occurred
@@ -322,11 +341,11 @@ void BPMcalc()
         else
         {
             sum += peakIndicesIR[i]-peakIndicesIR[i-1];
-            count2++;
+            count++;
         } 
     }
     
-    period = ((sum/count2) * 0.02);
+    period = ((sum/count) * 0.02);
     BPM = 60 / period ;
 }
 
@@ -339,10 +358,6 @@ void calculateSPO2()
     redAC = redPeak - lowValR;
     irAC = irPeak - lowValIR;
     SPO2 = (log(redAC)/log(irAC)) * 100; 
-    if(SPO2 > 100)
-    {
-        SPO2 = 100;
-    }
 }
 
 void csvOutput()
@@ -451,31 +466,36 @@ void realtimeSend()
 
 void lightPulse(void)
 {
-    for (int j = 0; j < 100; j++)
-    {
-        IRoff();
-        REDon();
-        __delay_ms(10);
-        IRon();
-        REDoff();
-        __delay_ms(10);
-    }
+//    TMR3H = 0b11011001;
+//    TMR3L = 0b10010100;
+//    T3CONbits.TMR3ON = 1;
+//    for (int j = 0; j < 100; j++)
+//    {
+//        IRoff();
+//        REDon();
+//        __delay_ms(10);
+//        IRon();
+//        REDoff();
+//        __delay_ms(10);
+//    }
     for (int i =0; i < 150; i++)
     {
-        IRon();
-        REDoff(); 
+        //IRoff();
+        //REDon();
         adcselect(1);
         ADC_read(1,i);
+        //while(count < 2);   //runs until count = 2
         __delay_ms(9);
-        REDon();
-        IRoff();
+        //REDoff();           
+        //IRon();
         adcselect(2);
         ADC_read(2,i);
-
+        //while(count < 4);   //runs until count = 4
         __delay_ms(9);
-
+        //count = 0;
     }  
-    IRon();
+    //IRoff();
+    //T3CONbits.TMR3ON = 0;
 }
 
 
@@ -488,31 +508,31 @@ void main(void)
     AD_setup();
     freq = 0;
     //if RA0, RA1, RA2 or RA3 change size of array
-    if (PORTDbits.RD7 == 1)
+    if (LATDbits.LATD7 == 1)
     {
         arrSize = 20;
         printf ("Storage for 20 readings selected\n");
     }
-    else if (PORTDbits.RD6 == 1)
+    else if (LATDbits.LATD6 == 1)
     {
         arrSize = 30;
         printf ("Storage for 30 readings selected\n");
     }
-    else if (PORTDbits.RD5 == 1)
+    else if (LATDbits.LATD5 == 1)
     {
         arrSize = 40;
         printf ("Storage for 40 readings selected\n");
     }
-    else if (PORTDbits.RD4 == 1)
+    else if (LATDbits.LATD4 == 1)
     {
         arrSize = 50;
         printf ("Storage for 50 readings selected\n");
     }
     
     //if RC1, RD0, or RD1 if on then it changes the frequency of readings for the period of measuring
-    if (PORTCbits.RC3 == 1){ freq = 10;printf ("Time is 10s\n");}
-    else if (PORTDbits.RD0 == 1){ freq = 20;printf ("Time is 20s\n");}
-    else if (PORTDbits.RD1 == 1){ freq = 30;printf ("Time is 30s\n");}
+    if (LATCbits.LATC3 == 1){ freq = 10;printf ("Time is 10s\n");}
+    else if (LAtDbits.LATD0 == 1){ freq = 20;printf ("Time is 20s\n");}
+    else if (LATDbits.LATD1 == 1){ freq = 30;printf ("Time is 30s\n");}
     timer1Setup();
     //timer3setup();
     while(1)
@@ -534,7 +554,7 @@ void main(void)
                     csvOutput();
                     reportDONE = 1;
                 }     
-                if (PORTCbits.RC1 == 0)
+                if (LATCbits.LATC1 == 1)
                 {
                     state = MEASURING; //changes to measuring mode
                     reportDONE = 0;
